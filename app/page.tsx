@@ -1,9 +1,8 @@
 'use client';
 
 import { Property } from "@/lib/types";
-import Image from "next/image";
+import { proxyFetch } from "@/lib/utils";
 import Link from "next/link";
-import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 
@@ -20,8 +19,9 @@ export default function Home() {
 
   const fetchProperties = async () => {
     try {
-      const response = await fetch('/api/properties');
+      const response = await proxyFetch('api/properties?populate=*');
       const data = await response.json();
+      console.log("data", data)
       setProperties(data.data || []);
     } catch (error) {
       console.error("Error fetching properties:", error);
@@ -38,7 +38,7 @@ export default function Home() {
     <div className="min-h-screen p-8 bg-white">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-light mb-8 text-gray-800">Properties</h1>
-        
+
         <input
           type="text"
           placeholder="Search properties..."
@@ -60,8 +60,8 @@ export default function Home() {
                 <h2 className="text-xl font-light text-gray-800">{property.name}</h2>
                 {property.acronym && (
                   <p className="text-sm text-gray-500 mt-1">{property.acronym}</p>
-              )}
-            </Link>
+                )}
+              </Link>
             ))}
             {filteredProperties.length === 0 && (
               <p className="text-gray-500">No properties found</p>
