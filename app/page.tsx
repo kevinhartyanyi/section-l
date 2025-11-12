@@ -19,7 +19,7 @@ export default function Home() {
 
   const fetchProperties = async () => {
     try {
-      const response = await proxyFetch('api/properties?populate=*');
+      const response = await proxyFetch('api/properties?sort[0]=name:asc&fields[0]=id&fields[1]=name&fields[2]=acronym');
       const data = await response.json();
       console.log("data", data)
       setProperties(data.data || []);
