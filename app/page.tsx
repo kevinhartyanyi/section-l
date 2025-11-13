@@ -3,36 +3,43 @@
 import { Property } from "@/lib/types";
 import { proxyFetch } from "@/lib/utils";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
-
+const fetchProperties = async (): Promise<Property[]> => {
+  const response = await proxyFetch('api/properties?sort[0]=name:asc&fields[0]=id&fields[1]=name&fields[2]=acronym');
+  if (!response.ok) {
+    throw new Error('Failed to fetch properties');
+  }
+  const data = await response.json();
+  return data.data || [];
+};
 
 export default function Home() {
-  const [properties, setProperties] = useState<Property[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
 
-
-  useEffect(() => {
-    fetchProperties();
-  }, []);
-
-  const fetchProperties = async () => {
-    try {
-      const response = await proxyFetch('api/properties?sort[0]=name:asc&fields[0]=id&fields[1]=name&fields[2]=acronym');
-      const data = await response.json();
-      console.log("data", data)
-      setProperties(data.data || []);
-    } catch (error) {
-      console.error("Error fetching properties:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    data: properties = [],
+    isLoading,
+    error
+  } = useQuery({
+    queryKey: ['properties'],
+    queryFn: fetchProperties,
+  });
 
   const filteredProperties = properties.filter((property) =>
     property.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (error) {
+    return (
+      <div className="min-h-screen p-8 bg-white">
+        <div className="max-w-4xl mx-auto">
+          <p className="text-red-500">Error loading properties: {error.message}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-8 bg-white">
@@ -47,7 +54,7 @@ export default function Home() {
           className="w-full text-black px-4 py-3 mb-8 border border-gray-300 rounded-none focus:outline-none focus:border-gray-500 transition-colors"
         />
 
-        {loading ? (
+        {isLoading ? (
           <p className="text-gray-500">Loading...</p>
         ) : (
           <div className="space-y-4">
