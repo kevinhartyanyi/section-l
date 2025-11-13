@@ -1,40 +1,42 @@
 'use client';
 
-import { NeighborhoodCore, CityGem } from "@/lib/types";
-import Image from "next/image";
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { Neighborhood, CityGem } from "@/lib/types";
+import { createFetchFunction } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { useState, use } from "react";
 
-export default function Gems() {
-  const params = useParams();
+interface Props {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
+const fetchNeighborhoods = createFetchFunction<Neighborhood>('api/neighborhoods?populate=*');
+
+export default function Gems({ params }: Props) {
   const router = useRouter();
-  const propertyId = params.id as string;
-  const [neighborhoods, setNeighborhoods] = useState<NeighborhoodCore[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { id } = use(params);
+  const propertyId = id;
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchNeighborhoodsForProperty();
-  }, [propertyId]);
+  const {
+    data: allNeighborhoods = [],
+    isLoading: loading,
+    error
+  } = useQuery({
+    queryKey: ['neighborhoods'],
+    queryFn: fetchNeighborhoods,
+  });
 
-  const fetchNeighborhoodsForProperty = async () => {
-    try {
-      const response = await fetch('/api/neighborhoods');
-      const data = await response.json();
-      
-      // Filter neighborhoods that contain this property
-      const filteredNeighborhoods = (data.data || []).filter((neighborhood: NeighborhoodCore) => 
-        neighborhood.properties?.some(property => property.id.toString() === propertyId)
-      );
-      
-      console.log("Neighborhoods for property:", filteredNeighborhoods);
-      setNeighborhoods(filteredNeighborhoods);
-    } catch (error) {
-      console.error("Error fetching neighborhoods:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Filter neighborhoods that contain this property
+  const neighborhoods = allNeighborhoods.filter((neighborhood: Neighborhood) =>
+    neighborhood.properties?.some(property => property.id.toString() === propertyId)
+  );
+
+  console.log('propertyId:', propertyId);
+  console.log('allNeighborhoods:', allNeighborhoods);
+  console.log('filtered neighborhoods:', neighborhoods);
 
   // Get all city gems from all neighborhoods and remove duplicates by ID
   const allCityGems = neighborhoods.flatMap(n => n.city_gems || []);
@@ -61,6 +63,16 @@ export default function Gems() {
   const selectedCategoryGems = selectedCategory
     ? uniqueCityGems.filter(gem => (gem.category || 'Uncategorized') === selectedCategory)
     : [];
+
+  if (error) {
+    return (
+      <div className="min-h-screen p-8 bg-white">
+        <div className="max-w-4xl mx-auto">
+          <p className="text-red-500">Error loading neighborhoods: {error.message}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-8 bg-white">
@@ -102,7 +114,7 @@ export default function Gems() {
           <>
             <h1 className="text-3xl font-light mb-2 text-gray-800">City Gems</h1>
             <p className="text-gray-500 mb-8">Explore local recommendations by category</p>
-            
+
             {loading ? (
               <p className="text-gray-500">Loading...</p>
             ) : (
