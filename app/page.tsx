@@ -1,19 +1,12 @@
 'use client';
 
 import { Property } from "@/lib/types";
-import { proxyFetch } from "@/lib/utils";
+import { createFetchFunction } from "@/lib/utils";
 import Link from "next/link";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-const fetchProperties = async (): Promise<Property[]> => {
-  const response = await proxyFetch('api/properties?sort[0]=name:asc&fields[0]=id&fields[1]=name&fields[2]=acronym');
-  if (!response.ok) {
-    throw new Error('Failed to fetch properties');
-  }
-  const data = await response.json();
-  return data.data || [];
-};
+const fetchProperties = createFetchFunction<Property>('api/properties?sort[0]=name:asc&fields[0]=id&fields[1]=name&fields[2]=acronym');
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
