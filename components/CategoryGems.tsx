@@ -27,11 +27,14 @@ export default function CategoryGems({ selectedCategory, selectedCategoryGems, o
         )
     ).sort();
 
-    // Filter gems by search term (fuzzy search on longDescription)
+    // Filter gems by search term (search on shortDescription and longDescription)
     const searchFilteredGems = searchTerm
-        ? selectedCategoryGems.filter(gem =>
-            gem.longDescription?.toLowerCase().includes(searchTerm.toLowerCase())
-        )
+        ? selectedCategoryGems.filter(gem => {
+            const searchLower = searchTerm.toLowerCase();
+            const shortDesc = gem.shortDescription?.toLowerCase() || '';
+            const longDesc = gem.longDescription?.toLowerCase() || '';
+            return shortDesc.includes(searchLower) || longDesc.includes(searchLower);
+        })
         : selectedCategoryGems;
 
     // Filter gems by selected tags
