@@ -16,6 +16,7 @@ type SortOption = 'name' | 'none';
 export default function CategoryGems({ selectedCategory, selectedCategoryGems, onBack }: CategoryGemsProps) {
     const [sortBy, setSortBy] = useState<SortOption>('none');
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
+    const [searchTerm, setSearchTerm] = useState<string>('');
 
     // Get all unique tags from gems
     const allTags = Array.from(
@@ -26,12 +27,19 @@ export default function CategoryGems({ selectedCategory, selectedCategoryGems, o
         )
     ).sort();
 
-    // Filter gems by selected tags
-    const filteredGems = selectedTags.length > 0
+    // Filter gems by search term (fuzzy search on longDescription)
+    const searchFilteredGems = searchTerm
         ? selectedCategoryGems.filter(gem =>
-            gem.tags?.some(tag => selectedTags.includes(tag.name))
+            gem.longDescription?.toLowerCase().includes(searchTerm.toLowerCase())
         )
         : selectedCategoryGems;
+
+    // Filter gems by selected tags
+    const filteredGems = selectedTags.length > 0
+        ? searchFilteredGems.filter(gem =>
+            gem.tags?.some(tag => selectedTags.includes(tag.name))
+        )
+        : searchFilteredGems;
 
     // Sort gems
     const sortedGems = [...filteredGems].sort((a, b) => {
@@ -53,6 +61,11 @@ export default function CategoryGems({ selectedCategory, selectedCategoryGems, o
         setSortBy(value as SortOption);
     };
 
+    const clearAllFilters = () => {
+        setSelectedTags([]);
+        setSearchTerm('');
+    };
+
     return (
         <>
             <button
@@ -70,10 +83,12 @@ export default function CategoryGems({ selectedCategory, selectedCategoryGems, o
             <FilterBar
                 sortBy={sortBy}
                 onSortChange={handleSortChange}
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
                 allTags={allTags}
                 selectedTags={selectedTags}
                 onToggleTag={toggleTag}
-                onClearFilters={() => setSelectedTags([])}
+                onClearFilters={clearAllFilters}
             />
 
             {/* Gems List */}
