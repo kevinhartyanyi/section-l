@@ -1,7 +1,6 @@
 'use client';
 
 import { CityGem } from "@/lib/types";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 interface GemCardProps {
@@ -9,12 +8,12 @@ interface GemCardProps {
 }
 
 export default function GemCard({ gem }: GemCardProps) {
-    const router = useRouter();
-
     return (
-        <div
-            onClick={() => router.push(`/gems/${gem.slug}`)}
-            className="border border-gray-300 hover:border-gray-500 transition-colors cursor-pointer overflow-hidden"
+        <a
+            href={gem.googleMapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block border border-gray-300 hover:border-gray-500 transition-colors cursor-pointer overflow-hidden"
         >
             {/* Cover Image */}
             {gem.coverImage && (
@@ -61,31 +60,13 @@ export default function GemCard({ gem }: GemCardProps) {
 
                 {/* Tip */}
                 {gem.tip && (
-                    <div className="bg-gray-50 border-l-2 border-gray-300 p-3 mb-3">
+                    <div className="bg-gray-50 border-l-2 border-gray-300 p-3">
                         <p className="text-sm text-gray-700">
                             💡 <span className="font-medium">Tip:</span> {gem.tip}
                         </p>
                     </div>
                 )}
-
-                {/* Actions */}
-                <div className="flex items-center gap-4 text-sm">
-                    {gem.googleMapsUrl && (
-                        <a
-                            href={gem.googleMapsUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-gray-500 hover:text-gray-700 flex items-center gap-1"
-                        >
-                            📍 View on Maps →
-                        </a>
-                    )}
-                    <span className="text-gray-400">
-                        View details →
-                    </span>
-                </div>
             </div>
-        </div>
+        </a>
     );
 }
