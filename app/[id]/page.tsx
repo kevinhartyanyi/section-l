@@ -1,6 +1,6 @@
 'use client';
 
-import { Neighborhood, CityGem } from "@/lib/types";
+import { Neighborhood, CityGem, CityGemMinimal } from "@/lib/types";
 import { createFetchFunction, proxyFetch } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { useState, use } from "react";
@@ -13,24 +13,46 @@ interface Props {
   }>;
 }
 
-const fetchNeighborhoods = createFetchFunction<Neighborhood>('api/neighborhoods?populate=properties&populate=city_gems');
+// Optimized neighborhoods fetch - only get IDs and basic gem info
+const fetchNeighborhoods = createFetchFunction<Neighborhood>(
+  'api/neighborhoods?' +
+  'fields[0]=id&' +
+  'populate[properties][fields][0]=id&' +
+  'populate[city_gems][fields][0]=id&' +
+  'populate[city_gems][fields][1]=name&' +
+  'populate[city_gems][fields][2]=category'
+);
 
-// If we have more city gems (currently there's only 25 in the api) then we could switch to batching to avoid too long url for the query
+// Optimized city gems fetch - only get fields displayed in UI
 const fetchCityGemsByIds = async (ids: number[]): Promise<CityGem[]> => {
   if (ids.length === 0) return [];
 
-  // Build Strapi filter: filters[id][$in][0]=625&filters[id][$in][1]=626...
   const filterParams = ids.map((id, index) => `filters[id][$in][${index}]=${id}`).join('&');
-  const response = await proxyFetch(`api/city-gems?${filterParams}&populate=*`);
 
-  console.log(response)
+  const fields =
+    'fields[0]=id&' +
+    'fields[1]=name&' +
+    'fields[2]=category&' +
+    'fields[3]=shortDescription&' +
+    'fields[4]=longDescription&' +
+    'fields[5]=googleMapsUrl&' +
+    'fields[6]=tip&' +
+    'fields[7]=slug';
+
+  const populate =
+    'populate[coverImage][fields][0]=url&' +
+    'populate[coverImage][fields][1]=alternativeText&' +
+    'populate[coverImage][fields][2]=formats&' +
+    'populate[tags][fields][0]=id&' +
+    'populate[tags][fields][1]=name';
+
+  const response = await proxyFetch(`api/city-gems?${filterParams}&${fields}&${populate}`);
 
   if (!response.ok) {
     throw new Error('Failed to fetch city gems');
   }
 
   const data = await response.json();
-  console.log("data", data)
   return data.data || [];
 };
 
@@ -47,6 +69,7 @@ export default function GemListPage({ params }: Props) {
     queryFn: fetchNeighborhoods,
   });
 
+
   // Filter neighborhoods that contain this property
   const neighborhoods = allNeighborhoods.filter((neighborhood: Neighborhood) =>
     neighborhood.properties?.some(property => property.id.toString() === id)
@@ -61,7 +84,7 @@ export default function GemListPage({ params }: Props) {
   // Extract IDs for detailed fetch
   const gemIds = uniqueCityGems.map(gem => gem.id);
 
-  // Fetch full city gem details with populate
+  // Fetch full city gem details with optimized fields
   const {
     data: detailedCityGems = [],
     isLoading: gemsLoading,
@@ -69,11 +92,12 @@ export default function GemListPage({ params }: Props) {
   } = useQuery({
     queryKey: ['city-gems', gemIds],
     queryFn: () => fetchCityGemsByIds(gemIds),
-    enabled: gemIds.length > 0, // Only fetch if we have IDs
+    enabled: gemIds.length > 0,
   });
 
   // Use detailed gems if available, fallback to basic ones
-  const cityGemsToUse = detailedCityGems.length > 0 ? detailedCityGems : uniqueCityGems;
+  const cityGemsToUse: (CityGem | CityGemMinimal)[] =
+    detailedCityGems.length > 0 ? detailedCityGems : uniqueCityGems;
 
   // Group city gems by category and count them
   const categoryStats = cityGemsToUse.reduce((acc, gem) => {
@@ -113,7 +137,7 @@ export default function GemListPage({ params }: Props) {
         {selectedCategory ? (
           <CategoryGems
             selectedCategory={selectedCategory}
-            selectedCategoryGems={selectedCategoryGems}
+            selectedCategoryGems={selectedCategoryGems as CityGem[]}
             onBack={() => setSelectedCategory(null)}
           />
         ) : (
